@@ -40,10 +40,17 @@ class Position:
         else:
             return False
     def isNearTLBorder(self):
-        if(self.x <= 20 or self.y <= 20):
+        if(self.x <= 30 or self.y <= 30):
             return True
         else:
             return False 
+    def distanceFrom(self,pos):
+        return math.sqrt((self.x - pos.x)**2 + (self.y - pos.y)**2)
+
+class HistoryUnit:
+    def __init__(self, position, cFrame):
+        self.position = position
+        self.cFrame = cFrame
 
 class Tracked:
     def __init__(self,cnt,position,w,h,value,number):
@@ -55,26 +62,38 @@ class Tracked:
         self.history = []
         self.number = number
     
-    def updatePosition(self,cnt,position,w,h,value):
+    def updatePosition(self,cnt,position,w,h,value,fCount):
         if(self.cnt.shape == cnt.shape):
             if(self.position.isNear(position)):
-                self.history.append(self.position)
+                self.history.append(HistoryUnit(self.position,fCount))
                 self.position = position
                 return True
         else:
             if(self.position.isNear(position)):
                 if((self.w - 1) <= w) and ((self.h - 1) <= h) and ((self.w + 1) >= w) and ((self.h + 1) >= h):
                     if(self.value == value):
-                        self.history.append(self.position)
+                        self.history.append(HistoryUnit(self.position,fCount))
                         self.position = position
                         return True
         return False
 
+    def avgSpeed(self):
+        if(len(self.history) > 1):
+            sPos = self.history[0].position
+            ePos = self.history[-1].position
+
+            distance = sPos.distanceFrom(ePos)
+            frameCount = self.history[-1].cFrame - self.history[0].cFrame
+
+            return distance/frameCount
+
+        else:
+            return 0
 
 f= open("out.txt","w+")
 f.write("RA 73/2015 Ljubomir Rokvic\r")
 f.write("file	sum\r")
-#k=0
+k=0
 for k in range(0,10):
     cap = cv2.VideoCapture('data/video-'+str(k)+'.avi')
     count = 0
@@ -92,7 +111,7 @@ for k in range(0,10):
     if cap.isOpened():
         ret,firstFrame = cap.read()
 
-
+    fCount = 0
     while cap.isOpened():
         ret,frame = cap.read()
 
@@ -138,7 +157,10 @@ for k in range(0,10):
                 if((w > 1 and h > 15) or (w>17 and h>5)) and (w<=28 and h<=28):
                     number = format(cnt,thresh[:,:])
                     ynew = model.predict_classes(number.reshape(1,28,28,1))
-                    nTr = Tracked(cnt,Position(x+int(w/2),y+int(h/2)),w,h,ynew,number)
+                    M = cv2.moments(cnt)
+                    pos = Position(int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+                    nTr = Tracked(cnt,pos,w,h,ynew,number)
+                    #nTr = Tracked(cnt,Position(x+int(w/2),y+int(h/2)),w,h,ynew,number)
                     globalTracked.append(nTr)
 
         for cnt in cnts:
@@ -147,11 +169,16 @@ for k in range(0,10):
                 frame = cv2.rectangle(frame,(x,y),(x+w,y+h),(0,255,0),2)
                 number = format(cnt,thresh[:,:])
                 ynew = model.predict_classes(number.reshape(1,28,28,1))
-                nTr = Tracked(cnt,Position(x+int(w/2),y+int(h/2)),w,h,ynew,number)
+                M = cv2.moments(cnt)
+                pos = Position(int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+                nTr = Tracked(cnt,pos,w,h,ynew,number)
+                # nTr = Tracked(cnt,Position(x+int(w/2),y+int(h/2)),w,h,ynew,number)
+
                 updated = False
 
                 for tr in globalTracked:
-                    if(tr.updatePosition(cnt,Position(x+int(w/2),y+int(h/2)),w,h,ynew)):
+                    #if(tr.updatePosition(cnt,Position(x+int(w/2),y+int(h/2)),w,h,ynew)):
+                    if(tr.updatePosition(cnt,pos,w,h,ynew,fCount)):
                         updated = True
                         break
                 if(not(updated)):
@@ -174,6 +201,8 @@ for k in range(0,10):
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         lastframe = frame
+        #Frame counter
+        fCount +=1
 
     countG = 0
     countB = 0
@@ -190,25 +219,56 @@ for k in range(0,10):
     print(len(globalTracked))
     for tr in globalTracked:
         #print(len(tr.history))
-        if(len(tr.history) > 50): 
+        if(len(tr.history) > 5): 
             for i in range(0,len(tr.history)-1):
-                cv2.line(lastframe,(tr.history[i].x,tr.history[i].y),(tr.history[i+1].x,tr.history[i+1].y),(255,0,0),1)
-                if(intersect(tr.history[i],tr.history[i+1],bPoint1,bPoint2)):
+                cv2.line(lastframe,(tr.history[i].position.x,tr.history[i].position.y),(tr.history[i+1].position.x,tr.history[i+1].position.y),(255,0,0),1)
+                if(intersect(tr.history[i].position,tr.history[i+1].position,bPoint1,bPoint2)):
                     countB += 1
                     rez += tr.value
                     #cv2.imwrite('debug/Blue_'+ str(randint(0,10000000))+'_' + str(tr.value[0]) +'.png',tr.number)
                     #print(tr.value)
-                if(intersect(tr.history[i],tr.history[i+1],gPoint1,gPoint2)):
+                if(intersect(tr.history[i].position,tr.history[i+1].position,gPoint1,gPoint2)):
+                    countG += 1
+                    rez -= tr.value
+                    #cv2.imwrite('debug/Green_'+ str(randint(0,10000000))+'_' + str(tr.value[0]) +'.png',tr.number)
+                    #print(-tr.value)
+            if(tr.history[-1].cFrame < (fCount-5)) and (tr.history[-1].position.x < 600) and (tr.history[-1].position.y < 440):
+                sPoint = tr.history[-1].position
+                xList = [history.position.x for history in tr.history[:]] 
+                yList = [history.position.y for history in tr.history[:]]
+                a,n = np.polyfit(xList,yList,1)
+                #print(str(tr.value) +"K: " + str(a) + " - N:" + str(n) )
+                
+                theta = math.atan(a)
+
+                aSpeed = tr.avgSpeed()
+                length = aSpeed * (fCount - tr.history[-1].cFrame) 
+                ePoint = Position(int(length*math.cos(theta)),int(length*math.sin(theta)))
+
+                if(ePoint.x > 480):
+                    ePoint.x = 480
+
+                ePoint.y = int(ePoint.x * a + n)
+                if(ePoint.y > 640):
+                    ePoint.y = 640
+                    ePoint.x = int((ePoint.y - n)/a) 
+                cv2.line(lastframe,(sPoint.x,sPoint.y),(ePoint.x,ePoint.y),(255,255,0),1)
+
+                if(intersect(sPoint,ePoint,bPoint1,bPoint2)):
+                    countB += 1
+                    rez += tr.value
+                    #cv2.imwrite('debug/Blue_'+ str(randint(0,10000000))+'_' + str(tr.value[0]) +'.png',tr.number)
+                    #print(tr.value)
+                if(intersect(sPoint,ePoint,gPoint1,gPoint2)):
                     countG += 1
                     rez -= tr.value
                     #cv2.imwrite('debug/Green_'+ str(randint(0,10000000))+'_' + str(tr.value[0]) +'.png',tr.number)
                     #print(-tr.value)
 
-
     print("RESULT: " + str(rez))
     cv2.imshow('Preview', lastframe)
     #print(str(countB) + ' : ' + str(countG))
-    f.write('video-'+str(k)+'.avi ' + str(rez[0])+'\r')
+    f.write('video-'+str(k)+'.avi\t' + str(rez[0])+'\r')
     cv2.waitKey(5000)
     cap.release()
     cv2.destroyAllWindows() 
