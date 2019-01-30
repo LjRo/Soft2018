@@ -40,7 +40,7 @@ class Position:
         else:
             return False
     def isNearTLBorder(self):
-        if(self.x <= 30 or self.y <= 30):
+        if(self.x <= 25 or self.y <= 25):
             return True
         else:
             return False 
@@ -164,7 +164,7 @@ for k in range(0,10):
                     globalTracked.append(nTr)
                 cntCount+=1
 
-                
+
         cntCount = 0
         for cnt in cnts:
             x,y,w,h = cv2.boundingRect(cnt)
@@ -223,7 +223,7 @@ for k in range(0,10):
     print(len(globalTracked))
     for tr in globalTracked:
         #print(len(tr.history))
-        if(len(tr.history) > 5): 
+        if(len(tr.history) > 13): 
             for i in range(0,len(tr.history)-1):
                 cv2.line(lastframe,(tr.history[i].position.x,tr.history[i].position.y),(tr.history[i+1].position.x,tr.history[i+1].position.y),(255,0,0),1)
                 if(intersect(tr.history[i].position,tr.history[i+1].position,bPoint1,bPoint2)):
@@ -236,7 +236,7 @@ for k in range(0,10):
                     rez -= tr.value
                     #cv2.imwrite('debug/Green_'+ str(randint(0,10000000))+'_' + str(tr.value[0]) +'.png',tr.number)
                     #print(-tr.value)
-            if(tr.history[-1].cFrame < (fCount-5)) and (tr.history[-1].position.x < 600) and (tr.history[-1].position.y < 440):
+            if(tr.history[-1].cFrame < (fCount-10)) and (tr.history[-1].position.x < 600) and (tr.history[-1].position.y < 440):
                 sPoint = tr.history[-1].position
                 xList = [history.position.x for history in tr.history[:]] 
                 yList = [history.position.y for history in tr.history[:]]
