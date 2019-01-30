@@ -140,7 +140,7 @@ for k in range(0,10):
         (gImage, cnts,hier) = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         thresh = cv2.erode(thresh,kernel,iterations = 1)
         
-
+        cntCount = 0
         if(first):
             minLineLength = 300
             maxLineGap = 100
@@ -154,7 +154,7 @@ for k in range(0,10):
             #Hotfix for the first elements
             for cnt in cnts:
                 x,y,w,h = cv2.boundingRect(cnt)
-                if((w > 1 and h > 15) or (w>17 and h>5)) and (w<=28 and h<=28):
+                if((w > 1 and h > 14) or (w>14 and h>5)) and (w<=28 and h<=28) and hier[0][cntCount][3] == -1:
                     number = format(cnt,thresh[:,:])
                     ynew = model.predict_classes(number.reshape(1,28,28,1))
                     M = cv2.moments(cnt)
@@ -162,10 +162,13 @@ for k in range(0,10):
                     nTr = Tracked(cnt,pos,w,h,ynew,number)
                     #nTr = Tracked(cnt,Position(x+int(w/2),y+int(h/2)),w,h,ynew,number)
                     globalTracked.append(nTr)
+                cntCount+=1
 
+                
+        cntCount = 0
         for cnt in cnts:
             x,y,w,h = cv2.boundingRect(cnt)
-            if((w > 1 and h > 15) or (w>17 and h>5)) and (w<=28 and h<=28):
+            if((w > 1 and h > 14) or (w>14 and h>5)) and (w<=28 and h<=28) and hier[0][cntCount][3] == -1:
                 frame = cv2.rectangle(frame,(x,y),(x+w,y+h),(0,255,0),2)
                 number = format(cnt,thresh[:,:])
                 ynew = model.predict_classes(number.reshape(1,28,28,1))
@@ -187,6 +190,7 @@ for k in range(0,10):
                         globalTracked.append(nTr)
 
                 #cv2.imshow('Preview', number)
+            cntCount += 1
 
 
         for x1,y1,x2,y2 in linesBlue[0]:
