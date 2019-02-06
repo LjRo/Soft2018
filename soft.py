@@ -193,13 +193,13 @@ for k in range(0,10):
             cntCount += 1
 
 
-        for x1,y1,x2,y2 in linesBlue[0]:
-            cv2.line(frame,(x1,y1),(x2,y2),(0,0,255),2)
+        #for x1,y1,x2,y2 in linesBlue[0]:
+            #cv2.line(frame,(x1,y1),(x2,y2),(0,0,255),2)
 
-        for x1,y1,x2,y2 in linesGreen[0]:
-            cv2.line(frame,(x1,y1),(x2,y2),(0,0,255),2)
+        #for x1,y1,x2,y2 in linesGreen[0]:
+            #cv2.line(frame,(x1,y1),(x2,y2),(0,0,255),2)
 
-        cv2.imshow('Preview', frame)
+        #cv2.imshow('Preview', frame)
         #print(len(globalTracked))
         count = count + 1
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -220,12 +220,13 @@ for k in range(0,10):
         gPoint1 = Position(x1,y1)
         gPoint2 = Position(x2,y2)
 
-    print(len(globalTracked))
+    #print(len(globalTracked))
+    #Predikcija
     for tr in globalTracked:
         #print(len(tr.history))
         if(len(tr.history) > 13): 
             for i in range(0,len(tr.history)-1):
-                cv2.line(lastframe,(tr.history[i].position.x,tr.history[i].position.y),(tr.history[i+1].position.x,tr.history[i+1].position.y),(255,0,0),1)
+                #cv2.line(lastframe,(tr.history[i].position.x,tr.history[i].position.y),(tr.history[i+1].position.x,tr.history[i+1].position.y),(255,0,0),1)
                 if(intersect(tr.history[i].position,tr.history[i+1].position,bPoint1,bPoint2)):
                     countB += 1
                     rez += tr.value
@@ -256,7 +257,7 @@ for k in range(0,10):
                 if(ePoint.y > 640):
                     ePoint.y = 640
                     ePoint.x = int((ePoint.y - n)/a) 
-                cv2.line(lastframe,(sPoint.x,sPoint.y),(ePoint.x,ePoint.y),(255,255,0),1)
+                #cv2.line(lastframe,(sPoint.x,sPoint.y),(ePoint.x,ePoint.y),(255,255,0),1)
 
                 if(intersect(sPoint,ePoint,bPoint1,bPoint2)):
                     countB += 1
@@ -270,10 +271,10 @@ for k in range(0,10):
                     #print(-tr.value)
 
     print("RESULT: " + str(rez))
-    cv2.imshow('Preview', lastframe)
+    #cv2.imshow('Preview', lastframe)
     #print(str(countB) + ' : ' + str(countG))
     f.write('video-'+str(k)+'.avi\t' + str(rez[0])+'\r')
-    cv2.waitKey(5000)
+    #cv2.waitKey(5000)
     cap.release()
     cv2.destroyAllWindows() 
 
